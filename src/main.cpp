@@ -41,46 +41,55 @@ volatile int mainTargetPWM = 0,
              mainCurrentPWM = 0,
              tableCurrentPWM = 0;
 
-Encoder mainEnc(main_clkPin,main_dtPin,main_swPin, TYPE1);
-Encoder tableEnc(table_clkPin,table_dtPin,table_swPin, TYPE1);
+Encoder mainEnc(main_clkPin,main_dtPin,main_swPin, TYPE2);
+Encoder tableEnc(table_clkPin,table_dtPin,table_swPin, TYPE2);
 
 
 /////////////////--SETUP--//////////////////////////
 void setup() {
-  analogWrite(main_pwmPin, 0);
-  analogWrite(table_pwmPin, 0);
-  allLightFullUp();
+    analogWrite(main_pwmPin, 0);
+    analogWrite(table_pwmPin, 0);
+    allLightFullUp();
 
-  // Serial.begin(9600);
+    Serial.begin(9600);
+    Serial.println("I'm here!");
+
+    while (true)
+    {
+        Serial.println("Hello!");
+        delay(2000);
+        mainEnc.tick();
+        tableEnc.tick();
+        update();
+
+        if (mainEnc.isRight())
+            mainLightUp();
+        else if (mainEnc.isLeft())
+            mainLightDown();
+
+        if (tableEnc.isLeft())
+            tableLightUp();
+        else if (tableEnc.isRight())
+            tableLightDown();
+
+        if (mainEnc.isClick())
+            mainClicked = true;
+        if (tableEnc.isClick())
+            tableClicked = true;
+
+        if (mainClicked)
+            mainClick();
+        if (tableClicked)
+            tableClick();
+
+        delay(1);
+    }
+    
 }
 
 /////////////////--LOOP--////////////////////////////
 void loop() {
-  mainEnc.tick();
-  tableEnc.tick();
-  update();
 
-  if (mainEnc.isRight())
-    mainLightUp();
-  else if (mainEnc.isLeft())
-    mainLightDown();
-
-  if (tableEnc.isLeft())
-    tableLightUp();
-  else if (tableEnc.isRight())
-    tableLightDown();
-
-  if (mainEnc.isClick())
-    mainClicked = true;
-  if (tableEnc.isClick())
-    tableClicked = true;
-
-  if (mainClicked)
-    mainClick();
-  if (tableClicked)
-    tableClick();
-
-  delay(1);
 }
 
 /////////////////--SUBFUNCTIONS--///////////////////////////
@@ -117,29 +126,19 @@ void update(){
   analogWrite(table_pwmPin, brightness(tableCurrentPWM));
 }
 
-int brightness(int linearBrightness){
+int brightness(int linearBrightness)
+{
+    long ret = linearBrightness;
+    ret = ret * ret;
 
-  // Serial.print("in : ");
-  // Serial.println(linearBrightness);
+    ret = ret / 256;
 
-  long ret = linearBrightness;
-  ret = ret * ret;
+    if (ret < 0)
+        ret = 0;
+    if (ret > 253)
+        ret = 255;
 
-  // Serial.print("mid : ");
-  // Serial.println(ret);
-
-  ret = ret / 256;
-
-  // Serial.print("out : ");
-  // Serial.println(ret);
-  // Serial.println();
-
-  if (ret < 0)
-    ret = 0;
-  if (ret > 253)
-    ret = 255;
-
-  return ret;
+    return ret;
 }
 
 void mainLightUp(){
@@ -154,17 +153,20 @@ void mainLightDown(){
 }
 
 void tableLightUp(){
+    // Serial.println("Table light up");
   tableTargetPWM += step;
   if (tableTargetPWM > 255)
     tableTargetPWM = 255;
 }
 void tableLightDown(){
+    // Serial.println("Table light down");
   tableTargetPWM -= step;
   if (tableTargetPWM < 0)
     tableTargetPWM = 0;
 }
 
 void mainClick(){
+    // Serial.println("Main click");
   if (mainTargetPWM > 0)
     mainTargetPWM = 0;
   else
@@ -173,6 +175,7 @@ void mainClick(){
   mainClicked = false;
 }
 void tableClick(){
+    // Serial.println("Table click");
   if (tableTargetPWM > 0)
     tableTargetPWM = 0;
   else
@@ -184,26 +187,6 @@ void tableClick(){
 void allLightFullUp(){
   tableTargetPWM = 255;
   mainTargetPWM = 255;
-}
-
-void tableWarning(){
-  digitalWrite(table_pwmPin, 0);
-  delay(200);
-  digitalWrite(table_pwmPin, 1);
-  delay(200);
-  digitalWrite(table_pwmPin, 0);
-  delay(200);
-  digitalWrite(table_pwmPin, 1);
-}
-
-void mainWarning(){
-  digitalWrite(main_pwmPin, 0);
-  delay(200);
-  digitalWrite(main_pwmPin, 1);
-  delay(200);
-  digitalWrite(main_pwmPin, 0);
-  delay(200);
-  digitalWrite(main_pwmPin, 1);
 }
 
 //--------энергосберегайки----17ma->5ma(5v) (ардуина)---------------
